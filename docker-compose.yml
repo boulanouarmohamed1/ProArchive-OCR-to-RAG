@@ -1,0 +1,95 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg2://archive:archive@postgres:5432/archive
+      QDRANT_URL: http://qdrant:6333
+      OLLAMA_BASE_URL: http://ollama:11434
+      UPLOAD_DIR: /app/storage/uploads
+    volumes:
+      - .:/app
+      - uploads:/app/storage/uploads
+      - model-cache:/root/.cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    env_file:
+      - .env.example
+    environment:
+      API_BASE_URL: http://api:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: archive
+      POSTGRES_PASSWORD: archive
+      POSTGRES_DB: archive
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archive -d archive"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  ollama:
+    image: ollama/ollama:0.5.4
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  ollama-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /app/scripts/pull_ollama_model.sh
+    env_file:
+      - .env.example
+    environment:
+      SKIP_DB_INIT: "1"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:3b
+    depends_on:
+      - ollama
+    restart: "no"
+
+volumes:
+  postgres-data:
+  qdrant-data:
+  ollama-data:
+  uploads:
+  model-cache:
