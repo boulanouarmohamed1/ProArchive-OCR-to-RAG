@@ -1,4 +1,4 @@
-Production-ready pipeline for Arabic and French archive digitization.
+##                                Production-ready pipeline for Arabic and French archive digitization.
 
 ## Stack
 
