@@ -1,6 +1,4 @@
-# Archive Digitization RAG
-https://github.com/boulanouarmohamed1/ProArchive-OCR-to-RAG.git
-Production-ready Python 3.11 pipeline for Arabic and French archive digitization.
+Production-ready pipeline for Arabic and French archive digitization.
 
 ## Stack
 
