@@ -1,103 +1,253 @@
-##                                Production-ready pipeline for Arabic and French archive digitization.
+#                                                 ProArchive: OCR to RAG
 
-## Stack
+ProArchive: OCR to RAG is a document digitization platform designed for historical and administrative archives. It transforms scanned Arabic and French documents into a searchable knowledge base using OCR, semantic embeddings, and Retrieval-Augmented Generation (RAG).
 
-- FastAPI backend
-- PaddleOCR for Arabic/French OCR
-- Heuristic layout analysis with optional Qwen2.5-VL classification through Ollama
-- BAAI/bge-m3 embeddings
-- Qdrant vector database
+The project automates the complete workflow—from document upload and text extraction to intelligent question answering—allowing users to search large collections of archives using natural language instead of manually browsing documents.
+
+---
+
+## Features
+
+- OCR for Arabic and French scanned documents
+- Automatic document layout analysis
+- Semantic document chunking and indexing
+- Vector search powered by Qdrant
+- AI-assisted question answering using Retrieval-Augmented Generation (RAG)
+- FastAPI REST API
+- Streamlit web interface
 - PostgreSQL document registry
-- Qwen2.5:3B through Ollama for grounded RAG answers
-- Streamlit frontend
-- Docker Compose orchestration
+- Docker-based deployment
 
-## Quick Start
+---
+
+## Architecture
+
+```
+                Upload Document
+                       │
+                       ▼
+                OCR (PaddleOCR)
+                       │
+                       ▼
+              Layout Analysis
+                       │
+                       ▼
+             Text Chunking Pipeline
+                       │
+                       ▼
+        BGE-M3 Embedding Generation
+                       │
+                       ▼
+              Qdrant Vector Store
+                       │
+         ┌─────────────┴─────────────┐
+         │                           │
+         ▼                           ▼
+ PostgreSQL Metadata          Semantic Search
+                                      │
+                                      ▼
+                       Qwen2.5 (RAG Answering)
+                                      │
+                                      ▼
+                               User Response
+```
+
+---
+
+## Tech Stack
+
+### Backend
+
+- FastAPI
+- PostgreSQL
+- Qdrant
+- Docker
+
+### AI Models
+
+- PaddleOCR
+- BAAI/bge-m3
+- Qwen2.5
+- Ollama
+
+### Frontend
+
+- Streamlit
+
+---
+
+## Getting Started
+
+Clone the repository
+
+```bash
+git clone https://github.com/your-username/ProArchive-OCR-to-RAG.git
+cd ProArchive-OCR-to-RAG
+```
+
+Create the environment file
 
 ```bash
 cp .env.example .env
+```
+
+Start all services
+
+```bash
 docker compose up --build
 ```
 
-Services:
+---
 
-- API: http://localhost:8000
-- API docs: http://localhost:8000/docs
-- Streamlit: http://localhost:8501
-- Qdrant: http://localhost:6333
-- Ollama: http://localhost:11434
+## Available Services
 
-The `ollama-init` service pulls `qwen2.5:3b` automatically.
+| Service | URL |
+|----------|-----|
+| FastAPI | http://localhost:8000 |
+| API Documentation | http://localhost:8000/docs |
+| Streamlit | http://localhost:8501 |
+| Qdrant Dashboard | http://localhost:6333 |
+| Ollama | http://localhost:11434 |
 
-## API
+The Docker setup automatically downloads the required Qwen model during initialization.
 
-Upload a file:
+---
+
+## API Examples
+
+### Upload a document
 
 ```bash
 curl -F "file=@sample.pdf" http://localhost:8000/upload
 ```
 
-Process it:
+### Process the document
 
 ```bash
 curl -X POST http://localhost:8000/process \
-  -H "Content-Type: application/json" \
-  -d '{"document_id":1}'
+-H "Content-Type: application/json" \
+-d '{"document_id":1}'
 ```
 
-Ask the archive:
+### Query the archive
 
 ```bash
 curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Show me all contracts signed in 1985 mentioning Sonatrach","top_k":5}'
+-H "Content-Type: application/json" \
+-d '{
+      "question":"Show me all contracts signed in 1985 mentioning Sonatrach",
+      "top_k":5
+    }'
 ```
+
+---
 
 ## Project Structure
 
-```text
+```
 project/
+│
 ├── app/
 │   ├── database/
 │   ├── models/
 │   ├── rag/
 │   ├── routers/
 │   └── services/
+│
 ├── frontend/
 ├── tests/
-├── scripts/
 ├── docker/
+├── scripts/
+│
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
 ```
 
+---
+
 ## Environment Variables
 
-See `.env.example`.
+The application configuration is defined in `.env`.
 
-Important values:
+Some important variables include:
 
-- `DATABASE_URL`
-- `QDRANT_URL`
-- `QDRANT_COLLECTION`
-- `OLLAMA_BASE_URL`
-- `OLLAMA_MODEL`
-- `EMBEDDING_MODEL`
-- `UPLOAD_DIR`
-- `CHUNK_SIZE`
-- `CHUNK_OVERLAP`
+```
+DATABASE_URL
+QDRANT_URL
+QDRANT_COLLECTION
+OLLAMA_BASE_URL
+OLLAMA_MODEL
+EMBEDDING_MODEL
+UPLOAD_DIR
+CHUNK_SIZE
+CHUNK_OVERLAP
+```
 
-## Development
+Refer to `.env.example` for the complete configuration.
+
+---
+
+## Local Development
+
+Create a virtual environment
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+```
+
+Install dependencies
+
+```bash
 pip install -r requirements.txt
-pytest
+```
+
+Run the backend
+
+```bash
 uvicorn app.main:app --reload
+```
+
+Run the frontend
+
+```bash
 streamlit run frontend/streamlit_app.py
 ```
 
-For local development outside Docker, run PostgreSQL, Qdrant, and Ollama locally or update `.env`.
+Run the test suite
+
+```bash
+pytest
+```
+
+When running outside Docker, make sure PostgreSQL, Qdrant, and Ollama are running locally or update the corresponding values in the `.env` file.
+
+---
+
+## Use Cases
+
+- Historical archive digitization
+- Government document management
+- Enterprise knowledge retrieval
+- Legal and administrative record search
+- Research document indexing
+- Multilingual document exploration
+
+---
+
+## Future Improvements
+
+- PDF annotation support
+- Multi-user authentication
+- Hybrid keyword and semantic search
+- OCR quality evaluation dashboard
+- Batch processing pipeline
+- Cloud deployment support
+
+---
+
+## License
+
+This project is intended for educational, research, and production use. 
