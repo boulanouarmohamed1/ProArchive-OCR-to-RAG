@@ -2,7 +2,7 @@
 
 ProArchive: OCR to RAG is a document digitization platform designed for historical and administrative archives. It transforms scanned Arabic and French documents into a searchable knowledge base using OCR, semantic embeddings, and Retrieval-Augmented Generation (RAG).
 
-The project automates the complete workflow—from document upload and text extraction to intelligent question answering—allowing users to search large collections of archives using natural language instead of manually browsing documents.
+The project automates the complete workflow from document upload and text extraction to intelligent question answering—allowing users to search large collections of archives using natural language instead of manually browsing documents.
 
 ---
 
@@ -17,6 +17,29 @@ The project automates the complete workflow—from document upload and text extr
 - Streamlit web interface
 - PostgreSQL document registry
 - Docker-based deployment
+  
+---
+
+## Tech Stack
+
+### Backend
+
+- FastAPI
+- PostgreSQL
+- Qdrant
+- Docker
+
+### AI Models
+
+- PaddleOCR
+- BAAI/bge-m3
+- Qwen2.5
+- Ollama
+
+### Frontend
+
+- Streamlit
+
 
 ---
 
@@ -52,29 +75,7 @@ The project automates the complete workflow—from document upload and text extr
                                User Response
 ```
 
----
 
-## Tech Stack
-
-### Backend
-
-- FastAPI
-- PostgreSQL
-- Qdrant
-- Docker
-
-### AI Models
-
-- PaddleOCR
-- BAAI/bge-m3
-- Qwen2.5
-- Ollama
-
-### Frontend
-
-- Streamlit
-
----
 
 ## Getting Started
 
