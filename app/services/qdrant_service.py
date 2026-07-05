@@ -20,7 +20,14 @@ class QdrantService:
 
     def ensure_collection(self) -> None:
         if self._collection_exists():
-            return
+            if self._collection_vector_size() == self.embedding_service.dimension:
+                return
+            logger.info(
+                "Recreating Qdrant collection %s to match embedding dimension %s",
+                self.settings.qdrant_collection,
+                self.embedding_service.dimension,
+            )
+            self.client.delete_collection(self.settings.qdrant_collection)
         self.client.create_collection(
             collection_name=self.settings.qdrant_collection,
             vectors_config=qmodels.VectorParams(
@@ -98,3 +105,15 @@ class QdrantService:
     def _collection_exists(self) -> bool:
         collections = self.client.get_collections().collections
         return any(collection.name == self.settings.qdrant_collection for collection in collections)
+
+    def _collection_vector_size(self) -> int | None:
+        try:
+            info = self.client.get_collection(self.settings.qdrant_collection)
+            vectors = info.config.params.vectors
+            if isinstance(vectors, dict):
+                first = next(iter(vectors.values()), None)
+                return getattr(first, "size", None)
+            return getattr(vectors, "size", None)
+        except Exception as exc:
+            logger.warning("Could not inspect Qdrant collection size: %s", exc)
+            return None

@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     ollama_base_url: AnyHttpUrl = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
     ollama_vision_model: str | None = None
+    ollama_generation_timeout: int = Field(default=25, ge=5, le=300)
 
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "intfloat/multilingual-e5-small"
     embedding_device: str = "cpu"
     embedding_batch_size: int = 8
 

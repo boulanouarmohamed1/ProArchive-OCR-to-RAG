@@ -1,4 +1,6 @@
 import logging
+import subprocess
+import tempfile
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -23,15 +25,26 @@ class OCRService:
     def extract(self, file_path: str | Path) -> OCRResult:
         path = Path(file_path)
         images = self._load_images(path)
-        first_pass = self._run_ocr(images, lang="latin")
-        language = self._detect_language(first_pass.text)
+        try:
+            first_pass = self._run_tesseract_ocr(images)
+            if first_pass.text.strip():
+                return first_pass
+        except Exception as exc:
+            logger.warning("Tesseract OCR failed, falling back to PaddleOCR: %s", exc)
 
-        if language == "ar":
-            result = self._run_ocr(images, lang="arabic")
-            return result.model_copy(update={"language": "ar"})
+        try:
+            first_pass = self._run_ocr(images, lang="latin")
+            language = self._detect_language(first_pass.text)
 
-        result = first_pass
-        return result.model_copy(update={"language": language})
+            if language == "ar":
+                result = self._run_ocr(images, lang="arabic")
+                return result.model_copy(update={"language": "ar"})
+
+            result = first_pass
+            return result.model_copy(update={"language": language})
+        except Exception as exc:
+            logger.warning("PaddleOCR failed: %s", exc)
+            return OCRResult(text="", language="unknown", confidence=0.0, blocks=[])
 
     def _load_images(self, path: Path) -> list[Image.Image]:
         suffix = path.suffix.lower()
@@ -63,6 +76,55 @@ class OCRService:
             logger.info("Loading PaddleOCR engine for %s", paddle_lang)
             self._engines[lang] = PaddleOCR(use_angle_cls=True, lang=paddle_lang, show_log=False)
         return self._engines[lang]
+
+    def _run_tesseract_ocr(self, images: list[Image.Image]) -> OCRResult:
+        blocks: list[OCRBlock] = []
+        for page_number, image in enumerate(images, start=1):
+            tmp_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                    tmp_path = Path(tmp.name)
+                    image.save(tmp.name)
+
+                completed = subprocess.run(
+                    [
+                        "tesseract",
+                        str(tmp_path),
+                        "stdout",
+                        "-l",
+                        "fra+ara+eng",
+                        "--oem",
+                        "1",
+                        "--psm",
+                        "6",
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                text = completed.stdout.strip()
+            except Exception as exc:
+                logger.warning("Tesseract OCR failed on page %s: %s", page_number, exc)
+                text = ""
+            finally:
+                if tmp_path is not None:
+                    tmp_path.unlink(missing_ok=True)
+
+                if text:
+                    blocks.append(
+                        OCRBlock(
+                            text=text,
+                            confidence=0.5,
+                            bbox=[],
+                            page=page_number,
+                        )
+                    )
+
+        text = "\n".join(block.text for block in blocks).strip()
+        confidence = mean([block.confidence for block in blocks]) if blocks else 0.0
+        language = self._detect_language(text)
+        return OCRResult(text=text, language=language, confidence=confidence, blocks=blocks)
 
     @staticmethod
     def _parse_paddle_result(raw_result: Any, page_number: int) -> list[OCRBlock]:

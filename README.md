@@ -225,6 +225,8 @@ pytest
 
 When running outside Docker, make sure PostgreSQL, Qdrant, and Ollama are running locally or update the corresponding values in the `.env` file.
 
+For the Streamlit frontend, `API_BASE_URL` should usually be `http://localhost:8000` when you run the backend on your host machine. The Docker Compose frontend service overrides this to `http://api:8000` inside the container network.
+
 ---
 
 ## Use Cases

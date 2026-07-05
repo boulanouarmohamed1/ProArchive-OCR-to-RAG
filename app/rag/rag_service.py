@@ -1,4 +1,6 @@
 import logging
+import re
+from textwrap import shorten
 
 import requests
 
@@ -56,11 +58,31 @@ class RAGService:
             response = requests.post(
                 f"{self.settings.ollama_base_url}/api/generate",
                 json={"model": self.settings.ollama_model, "prompt": prompt, "stream": False},
-                timeout=120,
+                timeout=self.settings.ollama_generation_timeout,
             )
             response.raise_for_status()
             answer = response.json().get("response", "").strip()
             return answer or "I could not find this information in the archive."
         except requests.RequestException as exc:
-            logger.exception("Ollama generation failed")
-            raise RuntimeError(f"Ollama generation failed: {exc}") from exc
+            logger.warning("Ollama generation failed, returning extractive fallback: %s", exc)
+            return self._fallback_answer(question, context)
+
+    def _fallback_answer(self, question: str, context: str) -> str:
+        source_blocks = [block.strip() for block in re.split(r"\n\n+", context) if block.strip()]
+        if not source_blocks:
+            return "I could not find this information in the archive."
+
+        highlights: list[str] = []
+        for block in source_blocks[:3]:
+            first_line = block.splitlines()[0].strip()
+            text_lines = [line.strip() for line in block.splitlines()[1:] if line.strip()]
+            snippet = shorten(" ".join(text_lines), width=220, placeholder="...")
+            highlights.append(f"- {first_line}: {snippet}")
+
+        return (
+            "I found relevant archive passages, but the answer model was too slow to respond in time.\n"
+            f"Question: {question}\n\n"
+            "Top matches:\n"
+            + "\n".join(highlights)
+            + "\n\nYou can open the source documents below for the full text."
+        )
